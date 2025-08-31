@@ -246,15 +246,4 @@ Redshift/Synapse/BigQuery - Superset/Metabase dashboards
 
 ------------------------------------------------------------------------
 
-## 📌 Today's Action Items
-
--   Choose cloud track (AWS/Azure)
--   Scaffold Dockerfiles for FE/BE/worker
--   Helm charts + dev values; ingress + TLS
--   Terraform stack for VPC + cluster
--   Implement `/healthz` + `/auth/*`
--   Start `tutor-content` MCP server skeleton
-
-------------------------------------------------------------------------
-
-© 2025 --- AI Language Tutor Project
+© 2025 --- AI Language Tutor Project----Kavindu Herath----------------
