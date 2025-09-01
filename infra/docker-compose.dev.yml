@@ -1,0 +1,42 @@
+# infra/docker-compose.dev.yml
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ../backend
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - MONGODB_URI=mongodb://mongo:27017/ai_tutor
+      - JWT_SECRET=dev-secret-change
+      - ALLOWED_ORIGINS=http://localhost:5173
+      # Optional service URL for when you add OCR calls from Node:
+      - SPEECH_VISION_URL=http://speech-vision:8001
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+      - speech-vision
+
+  speech-vision:
+    build:
+      context: ../ai_services/speech_vision
+    environment:
+      - PORT=8001
+      # Set these if you want OCR via HF; otherwise /ocr returns 501 (service still runs):
+      # - HF_API_TOKEN=hf_xxx
+      # - HF_OCR_MODEL=microsoft/trocr-base-printed
+    ports:
+      - "8001:8001"
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data: {}

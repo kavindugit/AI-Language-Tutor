@@ -65,25 +65,27 @@ export const register = async (req, res) => {
     });
 
     const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      to: newUser.email,
-      subject: "Welcome to MedReport Assist 👋",
-      text:
-`Hello ${fullName},
+    from: process.env.SENDER_EMAIL,
+    to: newUser.email,
+    subject: "Welcome to AI Language Tutor 🎉",
+    text: `Hello ${fullName},
 
-Welcome to MedReport Assist!
+    Welcome to AI Language Tutor! 🚀
 
-You can securely upload medical reports, get plain-language translations of medical terms, generate accurate summaries with citations, and chat with our agent for educational guidance. 
+    Your personal AI-powered tutor is ready to help you improve fluency, grammar, vocabulary, and speaking confidence — anytime, anywhere. 
 
-What you can do next:
-• Upload your first report and track processing status.
-• Try the Medical Term Translator to simplify jargon.
-• View summaries with sources and discuss with your clinician.
+    Here’s what you can do next:
+      • Start your first chat session and practice conversations naturally.
+      • Try quick prompts like “Correct my grammar” or “Roleplay at a café”.
+      • Build your vocabulary deck and review with personalized drills.
+      • Practice pronunciation by speaking directly with the tutor.
 
-If you didn’t create this account, contact support immediately.
+    Stay consistent — your streaks and XP will keep you motivated! ✨
 
-— The MedReport Assist Team`
-    };
+    If you didn’t create this account, please contact support immediately.
+
+    — The AI Language Tutor Team`
+  };
 
     transporter.sendMail(mailOptions).catch((err) => {
       console.error("Welcome email failed:", err.message);
