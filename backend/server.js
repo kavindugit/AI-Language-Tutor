@@ -11,6 +11,8 @@ import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRouter.js";
 import systemRouter from "./routes/systemRoutes.js";  // ✅ new
 import { notFound, errorHandler } from "./middleware/errorHandlers.js";
+import aiRouter from "./routes/aiRoutes.js";
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -42,7 +44,7 @@ app.use(
 app.use("/api/system", systemRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
-
+app.use("/api/ai", aiRouter);   
 /* ---------- Error Handling ---------- */
 app.use(notFound);
 app.use(errorHandler);
