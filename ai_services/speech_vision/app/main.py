@@ -1,70 +1,71 @@
+# ai_services/speech_vision/app/main.py
 import os
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
+from dotenv import load_dotenv
 
-# Hugging Face OCR (optional)
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-from PIL import Image
-import torch
+load_dotenv()  # load env vars from .env
 
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
-HF_OCR_MODEL = os.getenv("HF_OCR_MODEL", "microsoft/trocr-base-stage1")
+# Import our Azure OCR wrapper
+from .services.ocr_service import azure_ocr, OcrError
+
+APP_VERSION = os.getenv("APP_VERSION", "0.3.0")
+
+AZURE_OCR_KEY = os.getenv("AZURE_OCR_KEY")
+AZURE_OCR_MODEL = os.getenv("AZURE_OCR_MODEL", "mistral-document-ai-2505")
+AZURE_OCR_URL = os.getenv("AZURE_OCR_URL")
 
 app = FastAPI(title="Speech & Vision Service")
 
+# CORS (dev-friendly; tighten later in prod)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Try loading OCR model only if token is set
-ocr_processor, ocr_model = None, None
-if HF_API_TOKEN:
-    try:
-        ocr_processor = TrOCRProcessor.from_pretrained(HF_OCR_MODEL, token=HF_API_TOKEN)
-        ocr_model = VisionEncoderDecoderModel.from_pretrained(HF_OCR_MODEL, token=HF_API_TOKEN)
-        print(f"✅ OCR model {HF_OCR_MODEL} loaded")
-    except Exception as e:
-        print("⚠️ Failed to load OCR model:", str(e))
 
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "service": "speech_vision"}
 
+
 @app.get("/readyz")
 def readyz():
-    return {"ready": bool(ocr_model), "ocr_model": HF_OCR_MODEL if ocr_model else "not_loaded"}
+    """Ready if Azure OCR key + URL are set."""
+    return {
+        "ready": bool(AZURE_OCR_KEY and AZURE_OCR_URL),
+        "mode": "azure_ai_foundry" if (AZURE_OCR_KEY and AZURE_OCR_URL) else "dummy",
+        "model": AZURE_OCR_MODEL,
+    }
+
+
+@app.get("/version")
+def version():
+    return {"version": APP_VERSION, "service": "speech_vision"}
+
 
 @app.post("/ocr")
 async def ocr(file: UploadFile = File(...)):
-    content = await file.read()
-    if not ocr_model:
+    """OCR endpoint. Uses Azure AI Foundry OCR if configured; otherwise dummy."""
+    blob = await file.read()
+    if not blob:
+        raise HTTPException(status_code=400, detail="Empty file.")
+
+    # Dummy fallback when no Azure OCR credentials are set
+    if not (AZURE_OCR_KEY and AZURE_OCR_URL):
         return {
             "success": True,
             "filename": file.filename,
-            "text": f"(dummy OCR) received {len(content)} bytes",
+            "text": f"(dummy OCR) received {len(blob)} bytes",
         }
 
     try:
-        # Open image
-        image = Image.open(io.BytesIO(content)).convert("RGB")
-        # Preprocess
-        pixel_values = ocr_processor(images=image, return_tensors="pt").pixel_values
-        # Generate text
-        generated_ids = ocr_model.generate(pixel_values)
-        text = ocr_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-
-        return {
-            "success": True,
-            "filename": file.filename,
-            "text": text.strip()
-        }
+        text = azure_ocr(blob)  # call Azure Foundry OCR
+        return {"success": True, "filename": file.filename, "text": text}
+    except OcrError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "filename": file.filename
-        }
+        raise HTTPException(status_code=500, detail=f"Unhandled error: {str(e)}")
