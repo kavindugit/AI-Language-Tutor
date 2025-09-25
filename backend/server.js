@@ -6,13 +6,16 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 
+
+import chatRouter from "./routes/chatRoutes.js";
 import connectDB from "./config/mongodb.js";
 import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRouter.js";
-import systemRouter from "./routes/systemRoutes.js";  // ✅ new
+import systemRouter from "./routes/systemRoutes.js"; 
 import { notFound, errorHandler } from "./middleware/errorHandlers.js";
 import aiRouter from "./routes/aiRoutes.js";
-
+import vocabRouter from "./routes/vocabRoutes.js";
+import lessonRouter from "./routes/lessonsRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -22,14 +25,14 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim());
 
-/* ---------- Global Middleware ---------- */
+
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 
-/* ---------- Rate Limiting ---------- */
+
 app.use(
   "/api",
   rateLimit({
@@ -40,16 +43,18 @@ app.use(
   })
 );
 
-/* ---------- Routes ---------- */
 app.use("/api/system", systemRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/ai", aiRouter);   
-/* ---------- Error Handling ---------- */
+app.use("/chat", chatRouter);  // chat routes
+app.use("/api/vocab", vocabRouter); // vocab routes
+app.use("/api/lessons", lessonRouter); // lessons routes
+
 app.use(notFound);
 app.use(errorHandler);
 
-/* ---------- Start Server ---------- */
+
 app.listen(PORT, async () => {
   console.log(`✅ API listening on http://localhost:${PORT}`);
   try {
